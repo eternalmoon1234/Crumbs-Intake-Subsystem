@@ -2,18 +2,29 @@ package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
+
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 
 public class Robot extends TimedRobot {
+  public enum IntakeState {
+    RETRACTED_INACTIVE, // Intake is stowed and inactive
+    EXTENDED_INACTIVE, // Intake is extended and inactive 
+    EXTENDED_ACTIVE_SUCK, // Intake is extended, active, and is sucking cargo in
+    EXTENDED_ACTIVE_SPIT, // Intake is extended, active, and is spitting cargo out
+    ERROR
+  }
 
-  Joystick joystick = new Joystick(0);
-  TalonFX intakeMotor = new TalonFX(0);
+  private IntakeState state = IntakeState.RETRACTED_INACTIVE;
+  private Joystick controller = new Joystick(0);
+  private TalonFX intakeMotor = new TalonFX(0);
+  private DoubleSolenoid intakeSolenoid = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 0);
 
   @Override
-  public void robotInit() {
-  
-  }
+  public void robotInit() {}
 
   /**
    * This function is called every robot packet, no matter the mode. Use this for items like
@@ -23,12 +34,7 @@ public class Robot extends TimedRobot {
    * SmartDashboard integrated updating.
    */
   @Override
-  public void robotPeriodic() {
-    intakeMotor.set(ControlMode.PercentOutput, joystick.getY());
-    System.out.println(ControlMode.PercentOutput);
-    System.out.println(joystick.getY());
-    System.out.println(joystick.getX());
-  }
+  public void robotPeriodic() {}
 
   /**
    * This autonomous (along with the chooser code above) shows how to select between different
@@ -41,15 +47,11 @@ public class Robot extends TimedRobot {
    * chooser code above as well.
    */
   @Override
-  public void autonomousInit() {
-
-  }
+  public void autonomousInit() {}
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {
-
-  }
+  public void autonomousPeriodic() {}
 
   /** This function is called once when teleop is enabled. */
   @Override
@@ -58,6 +60,21 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
+    System.out.println(controller.getRawButton(0));
+    switch (state) {
+      case RETRACTED_INACTIVE:
+        intakeSolenoid.set(Value.kReverse);
+        intakeMotor.set(ControlMode.PercentOutput, 0.00);
+      case EXTENDED_INACTIVE:
+        intakeSolenoid.set(Value.kForward);
+        intakeMotor.set(ControlMode.PercentOutput, 0.00);
+      case EXTENDED_ACTIVE_SUCK:
+        intakeSolenoid.set(Value.kForward);
+        intakeMotor.set(ControlMode.PercentOutput, 1.00);
+      case EXTENDED_ACTIVE_SPIT:
+        intakeSolenoid.set(Value.kForward); 
+        intakeMotor.set(ControlMode.PercentOutput, -1.00);      
+    }
   }
 
   /** This function is called once when the robot is disabled. */
