@@ -12,7 +12,7 @@ public class Robot extends TimedRobot {
   }
 
   private IntakeState state;
-  private XboxController controller;
+  private XboxController operator;
   private Spark verticalRollerMotor;
   private Spark horizontalRollerMotor;
   private Spark deploymentMotor;
@@ -24,7 +24,7 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     // State / controller configuration
     state = IntakeState.STOWED_INACTIVE;
-    controller = new XboxController(0);
+    operator = new XboxController(0);
 
     // Initializing motor controllers
     verticalRollerMotor = new Spark(0);
@@ -72,13 +72,13 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     // controls
-    if (controller.getRightTriggerAxis() >= 0.0) {
+    if (operator.getRightTriggerAxis() >= 0.0) {
       setState(IntakeState.DEPLOYED_ACTIVE_SUCK);
-      deploy(false, controller.getRightTriggerAxis());
-    } else if (controller.getLeftTriggerAxis() >= 0.0) {
+      deploy(false, operator.getRightTriggerAxis());
+    } else if (operator.getLeftTriggerAxis() >= 0.0) {
       setState(IntakeState.DEPLOYED_ACTIVE_SPIT);
-      deploy(true, -controller.getLeftTriggerAxis());
-    } else if (controller.getRightTriggerAxis() == 0.0 & state == IntakeState.DEPLOYED_ACTIVE_SPIT || state == IntakeState.DEPLOYED_ACTIVE_SUCK) {
+      deploy(true, -operator.getLeftTriggerAxis());
+    } else if (operator.getRightTriggerAxis() == 0.0 & state == IntakeState.DEPLOYED_ACTIVE_SPIT || state == IntakeState.DEPLOYED_ACTIVE_SUCK) {
       setState(IntakeState.STOWED_INACTIVE);
       stow();
     }
