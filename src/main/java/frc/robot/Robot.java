@@ -1,95 +1,87 @@
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonFX;
-
-import edu.wpi.first.wpilibj.DoubleSolenoid;
-import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.motorcontrol.Spark;
 
 public class Robot extends TimedRobot {
   public enum IntakeState {
-    RETRACTED_INACTIVE, // Intake is stowed and inactive
-    EXTENDED_INACTIVE, // Intake is extended and inactive 
-    EXTENDED_ACTIVE_SUCK, // Intake is extended, active, and is sucking cargo in
-    EXTENDED_ACTIVE_SPIT, // Intake is extended, active, and is spitting cargo out
-    ERROR
+    STOWED_INACTIVE, // Intake is stowed and inactive
+    DEPLOYED_ACTIVE_SUCK, // Intake is extended, active, and is sucking cargo in
+    DEPLOYED_ACTIVE_SPIT, // Intake is extended, active, and is spitting cargo out
   }
 
-  private IntakeState state = IntakeState.RETRACTED_INACTIVE;
-  private Joystick controller = new Joystick(0);
-  private TalonFX intakeMotor = new TalonFX(0);
-  private DoubleSolenoid intakeSolenoid = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 0);
+  private IntakeState state;
+  private XboxController controller;
+  private Spark verticalRollerMotor;
+  private Spark horizontalRollerMotor;
+  private Spark deploymentMotor;
+  private double suckSpeed;
+  private double spitSpeed;
+  private double inactiveSpeed;
 
   @Override
-  public void robotInit() {}
+  public void robotInit() {
+    // State / controller configuration
+    state = IntakeState.STOWED_INACTIVE;
+    controller = new XboxController(0);
 
-  /**
-   * This function is called every robot packet, no matter the mode. Use this for items like
-   * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
-   * SmartDashboard integrated updating.
-   */
-  @Override
-  public void robotPeriodic() {}
+    // Initializing motor controllers
+    verticalRollerMotor = new Spark(0);
+    horizontalRollerMotor = new Spark(0);
+    deploymentMotor = new Spark(0);
 
-  /**
-   * This autonomous (along with the chooser code above) shows how to select between different
-   * autonomous modes using the dashboard. The sendable chooser code works with the Java
-   * SmartDashboard. If you prefer the LabVIEW Dashboard, remove all of the chooser code and
-   * uncomment the getString line to get the auto name from the text box below the Gyro
-   *
-   * <p>You can add additional auto modes by adding additional comparisons to the switch structure
-   * below with additional strings. If using the SendableChooser make sure to add them to the
-   * chooser code above as well.
-   */
-  @Override
-  public void autonomousInit() {}
+    // Motor speeds
+    suckSpeed = 1.0;
+    spitSpeed = -1.0;
+    inactiveSpeed = 0.0;
+  }
 
-  /** This function is called periodically during autonomous. */
-  @Override
-  public void autonomousPeriodic() {}
+  public void setState(IntakeState _state) {
+    state = _state;
+  }
 
-  /** This function is called once when teleop is enabled. */
+  //deploy intake
+  public void deploy(boolean spit, double deploymentMotorSpeed) {
+    if (spit) {
+      setState(IntakeState.DEPLOYED_ACTIVE_SPIT);
+
+      verticalRollerMotor.set(spitSpeed);
+      horizontalRollerMotor.set(spitSpeed);
+    } else {
+      setState(IntakeState.DEPLOYED_ACTIVE_SUCK);
+      
+      verticalRollerMotor.set(suckSpeed);
+      horizontalRollerMotor.set(suckSpeed);
+    }
+
+    deploymentMotor.set(deploymentMotorSpeed);
+  }
+
+  // stow intake
+  public void stow() {
+    setState(IntakeState.STOWED_INACTIVE);
+    
+    verticalRollerMotor.set(inactiveSpeed);
+    horizontalRollerMotor.set(inactiveSpeed);
+  }
+
   @Override
   public void teleopInit() {}
 
-  /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-    System.out.println(controller.getRawButton(0));
-    switch (state) {
-      case RETRACTED_INACTIVE:
-        intakeSolenoid.set(Value.kReverse);
-        intakeMotor.set(ControlMode.PercentOutput, 0.00);
-      case EXTENDED_INACTIVE:
-        intakeSolenoid.set(Value.kForward);
-        intakeMotor.set(ControlMode.PercentOutput, 0.00);
-      case EXTENDED_ACTIVE_SUCK:
-        intakeSolenoid.set(Value.kForward);
-        intakeMotor.set(ControlMode.PercentOutput, 1.00);
-      case EXTENDED_ACTIVE_SPIT:
-        intakeSolenoid.set(Value.kForward); 
-        intakeMotor.set(ControlMode.PercentOutput, -1.00);      
+    // controls
+    if (controller.getRightTriggerAxis() >= 0.0) {
+      setState(IntakeState.DEPLOYED_ACTIVE_SUCK);
+      deploy(false, controller.getRightTriggerAxis());
+    } else if (controller.getLeftTriggerAxis() >= 0.0) {
+      setState(IntakeState.DEPLOYED_ACTIVE_SPIT);
+      deploy(true, -controller.getLeftTriggerAxis());
+    } else if (controller.getRightTriggerAxis() == 0.0 & state == IntakeState.DEPLOYED_ACTIVE_SPIT || state == IntakeState.DEPLOYED_ACTIVE_SUCK) {
+      setState(IntakeState.STOWED_INACTIVE);
+      stow();
     }
   }
-
-  /** This function is called once when the robot is disabled. */
-  @Override
-  public void disabledInit() {}
-
-  /** This function is called periodically when disabled. */
-  @Override
-  public void disabledPeriodic() {}
-
-  /** This function is called once when test mode is enabled. */
-  @Override
-  public void testInit() {}
-
-  /** This function is called periodically during test mode. */
-  @Override
-  public void testPeriodic() {}
 }
+ 
